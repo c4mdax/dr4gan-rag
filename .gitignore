@@ -1,2 +1,6 @@
-venv/
-__pycache__
+.env
+__pycache__/
+chroma_db/
+uploads/
+*.pdf
+*.txt
