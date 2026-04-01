@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat con Documentos</title>
+    <style>
+        :root { --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; --accent: #bb86fc; --border: #333; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; }
+        #sidebar { width: 300px; background: var(--panel); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        #chat { flex: 1; display: flex; flex-direction: column; }
+        h2 { color: var(--accent); margin-top: 0; }
+        #upload-box { border: 2px dashed var(--border); padding: 20px; text-align: center; border-radius: 8px; cursor: pointer; }
+        #upload-box:hover { border-color: var(--accent); }
+        #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .msg { padding: 12px 18px; border-radius: 8px; max-width: 80%; line-height: 1.4; }
+        .user { background: #3700b3; align-self: flex-end; }
+        .bot { background: #2c2c2c; align-self: flex-start; }
+        #input-area { padding: 20px; background: var(--panel); border-top: 1px solid var(--border); display: flex; gap: 10px; }
+        input[type="text"] { flex: 1; padding: 12px; border-radius: 5px; border: 1px solid var(--border); background: #2c2c2c; color: white; outline: none;}
+        button { padding: 12px 20px; border-radius: 5px; border: none; background: var(--accent); font-weight: bold; cursor: pointer;}
+        button:disabled { background: #555; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h2>📚 Mis Documentos</h2>
+        <div id="upload-box" onclick="document.getElementById('fileInput').click()">
+            <p>Haz clic para subir un PDF o TXT</p>
+            <input type="file" id="fileInput" style="display: none;" accept=".pdf,.txt">
+        </div>
+        <p id="status" style="font-size: 0.9em; color: #aaa;"></p>
+    </div>
+
+    <div id="chat">
+        <div id="messages">
+            <div class="msg bot">¡Hola! Sube un documento a la izquierda para empezar.</div>
+        </div>
+        <div id="input-area">
+            <input type="text" id="question" placeholder="Escribe tu pregunta aquí..." disabled>
+            <button id="btn" onclick="ask()" disabled>Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const status = document.getElementById('status');
+        const question = document.getElementById('question');
+        const btn = document.getElementById('btn');
+        const msgs = document.getElementById('messages');
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            status.style.color = '#ff9800';
+            status.textContent = `Procesando ${file.name} (esto puede tardar unos segundos)...`;
+            
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if(data.status === 'success') {
+                    status.style.color = '#4caf50';
+                    status.textContent = '✅ Documento listo.';
+                    question.disabled = false;
+                    btn.disabled = false;
+                    addMsg('bot', `He analizado "${file.name}". ¿Qué deseas saber?`);
+                } else { throw new Error(data.message); }
+            } catch (err) {
+                status.style.color = '#ff5252';
+                status.textContent = `Error: ${err.message}`;
+            }
+        });
+
+        async function ask() {
+            const q = question.value.trim();
+            if (!q) return;
+            
+            addMsg('user', q);
+            question.value = '';
+            question.disabled = true;
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: q })
+                });
+                const data = await res.json();
+                addMsg('bot', data.status === 'success' ? data.answer : `Error: ${data.message}`);
+            } catch (err) {
+                addMsg('bot', `Error de conexión: ${err.message}`);
+            } finally {
+                question.disabled = false;
+                btn.disabled = false;
+                question.focus();
+            }
+        }
+
+        question.addEventListener('keypress', (e) => { if (e.key === 'Enter') ask(); });
+
+        function addMsg(type, text) {
+            const div = document.createElement('div');
+            div.className = `msg ${type}`;
+            div.textContent = text;
+            msgs.appendChild(div);
+            msgs.scrollTop = msgs.scrollHeight;
+        }
+    </script>
+</body>
+</html>
