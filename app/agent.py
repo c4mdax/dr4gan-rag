@@ -1,8 +1,8 @@
-from langchain_ollama import OllamaLLM
+from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-from app.settings import LLM_CONFIG, UPLOAD_DIR
+from app.settings import LLM_CONFIG, GROQ_API_KEY, UPLOAD_DIR
 from app.vectorstore import get_vectorstore, get_retriever
 from app.loader import list_valid_files, load_documents
 
@@ -22,7 +22,12 @@ Respuesta (en español):
 
 def setup_llm_chain():
     prompt = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
-    llm = OllamaLLM(**LLM_CONFIG)
+    
+    llm = ChatGroq(
+        groq_api_key=GROQ_API_KEY,
+        model_name=LLM_CONFIG["model_name"],
+        temperature=LLM_CONFIG["temperature"]
+    )
     
     return prompt | llm | StrOutputParser()
 
