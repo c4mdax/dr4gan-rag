@@ -1,1 +1,3 @@
-# dr4gan-rag
+# dRAGan
+
+### Proyecto actualizado para implementación backend
