@@ -1,10 +1,15 @@
 import os
 from pathlib import Path
 
+load_dotenv()
+
 VECTORDB_PATH = Path("./chroma_db")
 UPLOAD_DIR = Path("./uploads")
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+if not GROQ_API_KEY:
+    raise ValueError("¡Falta la GROQ_API_KEY! Asegúrate de ponerla en tu archivo .env")
 
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
