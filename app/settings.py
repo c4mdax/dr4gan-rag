@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -14,7 +15,7 @@ if not GROQ_API_KEY:
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 LLM_CONFIG = {
-    "model_name": "llama3-8b-8192", 
+    "model_name": "llama-3.1-8b-instant",
     "temperature": 0.3
 }
 
