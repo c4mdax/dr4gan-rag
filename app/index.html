@@ -3,42 +3,288 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat con Documentos</title>
+    <title>dRAGan | Chat RAG</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #121212; --panel: #1e1e1e; --text: #e0e0e0; --accent: #bb86fc; --border: #333; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; }
-        #sidebar { width: 300px; background: var(--panel); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; }
-        #chat { flex: 1; display: flex; flex-direction: column; }
-        h2 { color: var(--accent); margin-top: 0; }
-        #upload-box { border: 2px dashed var(--border); padding: 20px; text-align: center; border-radius: 8px; cursor: pointer; }
-        #upload-box:hover { border-color: var(--accent); }
-        #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-        .msg { padding: 12px 18px; border-radius: 8px; max-width: 80%; line-height: 1.4; }
-        .user { background: #3700b3; align-self: flex-end; }
-        .bot { background: #2c2c2c; align-self: flex-start; }
-        #input-area { padding: 20px; background: var(--panel); border-top: 1px solid var(--border); display: flex; gap: 10px; }
-        input[type="text"] { flex: 1; padding: 12px; border-radius: 5px; border: 1px solid var(--border); background: #2c2c2c; color: white; outline: none;}
-        button { padding: 12px 20px; border-radius: 5px; border: none; background: var(--accent); font-weight: bold; cursor: pointer;}
-        button:disabled { background: #555; cursor: not-allowed; }
+        :root {
+            --bg-color: #0f172a;
+            --sidebar-bg: rgba(30, 41, 59, 0.7);
+            --chat-bg: #0f172a;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --user-msg: #6366f1;
+            --bot-msg: rgba(30, 41, 59, 0.9);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+
+        /* Panel Lateral */
+        #sidebar {
+            width: 320px;
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-right: 1px solid var(--border);
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            z-index: 10;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        h2 { 
+            font-weight: 600; 
+            font-size: 1.4rem;
+            background: -webkit-linear-gradient(45deg, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Caja de subida de archivos */
+        #upload-box {
+            border: 2px dashed rgba(99, 102, 241, 0.4);
+            background: rgba(99, 102, 241, 0.05);
+            padding: 30px 20px;
+            text-align: center;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #upload-box:hover {
+            border-color: var(--accent);
+            background: rgba(99, 102, 241, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .upload-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        #status {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+            min-height: 20px;
+            word-wrap: break-word;
+        }
+
+        /* Área de Chat */
+        #chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        #messages {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            scroll-behavior: smooth;
+        }
+
+        /* Burbujas de mensaje */
+        .msg {
+            padding: 16px 20px;
+            border-radius: 16px;
+            max-width: 75%;
+            line-height: 1.5;
+            font-size: 0.95rem;
+            animation: fadeIn 0.4s ease forwards;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user {
+            background: var(--user-msg);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot {
+            background: var(--bot-msg);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        /* Animación de "Escribiendo..." */
+        .typing-indicator {
+            display: flex;
+            gap: 5px;
+            padding: 15px 20px;
+            background: var(--bot-msg);
+            border-radius: 16px;
+            align-self: flex-start;
+            width: fit-content;
+            border: 1px solid var(--border);
+            display: none; /* Oculto por defecto */
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* Área de Input */
+        #input-area {
+            padding: 25px 40px;
+            background: transparent;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            display: flex;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 8px 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            transition: border-color 0.3s ease;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--accent);
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+        }
+
+        input[type="text"]::placeholder {
+            color: #64748b;
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: scale(1.05);
+        }
+
+        button:disabled {
+            background: #334155;
+            color: #64748b;
+            cursor: not-allowed;
+            transform: none;
+        }
+
     </style>
 </head>
 <body>
     <div id="sidebar">
-        <h2>📚 Mis Documentos</h2>
-        <div id="upload-box" onclick="document.getElementById('fileInput').click()">
-            <p>Haz clic para subir un PDF o TXT</p>
-            <input type="file" id="fileInput" style="display: none;" accept=".pdf,.txt">
+        <div class="logo-container">
+            <h2>dRAGan</h2>
         </div>
-        <p id="status" style="font-size: 0.9em; color: #aaa;"></p>
+        
+        <div style="flex: 1;">
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Base de Conocimiento</p>
+            <div id="upload-box" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📄</div>
+                <p style="font-weight: 600; margin-bottom: 5px;">Subir Documento</p>
+                <p style="font-size: 0.8rem; color: var(--text-muted);">Formatos soportados: PDF, TXT</p>
+                <input type="file" id="fileInput" style="display: none;" accept=".pdf,.txt">
+            </div>
+            <p id="status" style="margin-top: 15px;"></p>
+        </div>
+        
+        <div style="font-size: 0.75rem; color: #475569; text-align: center;">
+            Sistema RAG Impulsado por IA
+        </div>
     </div>
 
     <div id="chat">
         <div id="messages">
-            <div class="msg bot">¡Hola! Sube un documento a la izquierda para empezar.</div>
+            <div class="msg bot">¡Hola! Soy dRAGan, tu asistente de análisis de documentos. Sube un archivo en el panel izquierdo para comenzar.</div>
         </div>
+        
+        <div class="typing-indicator" id="typing">
+            <span></span><span></span><span></span>
+        </div>
+
         <div id="input-area">
-            <input type="text" id="question" placeholder="Escribe tu pregunta aquí..." disabled>
-            <button id="btn" onclick="ask()" disabled>Enviar</button>
+            <div class="input-wrapper">
+                <input type="text" id="question" placeholder="Escribe tu pregunta aquí..." autocomplete="off" disabled>
+                <button id="btn" onclick="ask()" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -48,13 +294,15 @@
         const question = document.getElementById('question');
         const btn = document.getElementById('btn');
         const msgs = document.getElementById('messages');
+        const typingIndicator = document.getElementById('typing');
 
+        // Función para subir archivo
         fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
             
-            status.style.color = '#ff9800';
-            status.textContent = `Procesando ${file.name} (esto puede tardar unos segundos)...`;
+            status.style.color = '#fbbf24'; // Amarillo/Naranja
+            status.innerHTML = `Procesando <b>${file.name}</b>...`;
             
             const formData = new FormData();
             formData.append('file', file);
@@ -64,18 +312,21 @@
                 const data = await res.json();
                 
                 if(data.status === 'success') {
-                    status.style.color = '#4caf50';
-                    status.textContent = '✅ Documento listo.';
+                    status.style.color = '#34d399'; // Verde
+                    status.innerHTML = 'Documento indexado.';
                     question.disabled = false;
                     btn.disabled = false;
-                    addMsg('bot', `He analizado "${file.name}". ¿Qué deseas saber?`);
-                } else { throw new Error(data.message); }
+                    addMsg('bot', `He terminado de analizar "<b>${file.name}</b>". ¿Qué deseas saber sobre él?`);
+                } else { 
+                    throw new Error(data.message); 
+                }
             } catch (err) {
-                status.style.color = '#ff5252';
-                status.textContent = `Error: ${err.message}`;
+                status.style.color = '#f87171'; // Rojo
+                status.innerHTML = `Error: ${err.message}`;
             }
         });
 
+        // Función para preguntar
         async function ask() {
             const q = question.value.trim();
             if (!q) return;
@@ -85,6 +336,11 @@
             question.disabled = true;
             btn.disabled = true;
 
+            // Mostrar "escribiendo..."
+            msgs.appendChild(typingIndicator);
+            typingIndicator.style.display = 'flex';
+            msgs.scrollTop = msgs.scrollHeight;
+
             try {
                 const res = await fetch('/api/ask', {
                     method: 'POST',
@@ -92,8 +348,13 @@
                     body: JSON.stringify({ question: q })
                 });
                 const data = await res.json();
-                addMsg('bot', data.status === 'success' ? data.answer : `Error: ${data.message}`);
+                
+                // Ocultar "escribiendo..."
+                typingIndicator.style.display = 'none';
+                
+                addMsg('bot', data.status === 'success' ? data.answer : ` Error: ${data.message}`);
             } catch (err) {
+                typingIndicator.style.display = 'none';
                 addMsg('bot', `Error de conexión: ${err.message}`);
             } finally {
                 question.disabled = false;
@@ -107,7 +368,7 @@
         function addMsg(type, text) {
             const div = document.createElement('div');
             div.className = `msg ${type}`;
-            div.textContent = text;
+            div.innerHTML = text;
             msgs.appendChild(div);
             msgs.scrollTop = msgs.scrollHeight;
         }
