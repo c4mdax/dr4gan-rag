@@ -1,6 +1,8 @@
 from pathlib import Path
 
 VECTORDB_PATH = Path("./chroma_db")
+UPLOAD_DIR = Path("./uploads")
+
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 LLM_CONFIG = {
